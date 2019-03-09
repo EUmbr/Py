@@ -1,0 +1,1 @@
+@py.exe C:\Users\Eugene\UmbrOne\Python\stuff\fib.py %*

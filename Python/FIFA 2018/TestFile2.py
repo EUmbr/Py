@@ -9,6 +9,13 @@ class Player(games.Sprite):
     VELOCITY_STEP = .03
     VELOCITY_STOP = .1
     VELOCITY_MAX = 3
+    image = games.load_image('player1.png')
+
+    def __init__(self, game, x, y):
+        super(Player, self).__init__(image=Player.image,
+                                     x=x,
+                                     y=y)
+        self.game = game
 
     def update(self):
         self.dx = min(max(self.dx, -Player.VELOCITY_MAX), Player.VELOCITY_MAX)
@@ -26,44 +33,12 @@ class Player(games.Sprite):
         elif self.dx < 0:
             self.angle = 270
 
-        if self.right > games.screen.width:
-            self.right = games.screen.width
-            self.dx = 0
-        if self.top < 0:
-            self.top = 0
-            self.dy = 0
-        if self.left < 0:
-            self.left = 0
-            self.dx = 0
-        if self.bottom > games.screen.height:
-            self.bottom = games.screen.height
-            self.dy = 0
-
-        if self.overlapping_sprites and (self.dx != 0 or self.dy != 0):
-            for sprite in self.overlapping_sprites:
-                if isinstance(sprite, Ball):
-                    sprite.move(self.dx, self.dy, self)
-                elif isinstance(sprite, Target):
-                    print('lll')
-                else:
-                    self.dx = -self.dx
-                    self.dy = -self.dy
-
-
-class Player1(Player):
-    image = games.load_image('player1.png')
-
-    def __init__(self, x, y):
-        super(Player1, self).__init__(image=Player1.image,
-                                      x=x,
-                                      y=y,
-                                      angle=90)
-
-    def __str__(self):
-        return 'Player1'
-
-    def update(self):
-        super(Player1, self).update()
+        if games.keyboard.is_pressed(games.K_s):
+            self.dy += Player.VELOCITY_STEP
+        elif self.dy > 0:
+            self.dy -= 0.1
+            if self.dy < 0:
+                self.dy = 0
         if games.keyboard.is_pressed(games.K_w):
             self.dy -= Player.VELOCITY_STEP
         elif self.dy < 0:
@@ -84,58 +59,27 @@ class Player1(Player):
             if self.dx > 0:
                 self.dx = 0
 
-        if games.keyboard.is_pressed(games.K_s):
-            self.dy += Player.VELOCITY_STEP
-        elif self.dy > 0:
-            self.dy -= 0.1
-            if self.dy < 0:
-                self.dy = 0
+        if self.right > games.screen.width:
+            self.right = games.screen.width
+            self.dx = 0
+        if self.top < 0:
+            self.top = 0
+            self.dy = 0
+        if self.left < 0:
+            self.left = 0
+            self.dx = 0
+        if self.bottom > games.screen.height:
+            self.bottom = games.screen.height
+            self.dy = 0
 
-
-class Player2(Player):
-    image = games.load_image('player2.png')
-
-    def __init__(self, x, y):
-        super(Player2, self).__init__(image=Player2.image,
-                                      x=x,
-                                      y=y,
-                                      angle=270)
-
-    def __str__(self):
-        return 'Player2'
-
-    def update(self):
-        super().update()
-
-        if games.keyboard.is_pressed(games.K_DOWN):
-            self.dy += Player.VELOCITY_STEP
-        elif self.dy > 0:
-            self.dy -= 0.1
-            if self.dy < 0:
-                self.dy = 0
-        if games.keyboard.is_pressed(games.K_UP):
-            self.dy -= Player.VELOCITY_STEP
-        elif self.dy < 0:
-            self.dy += 0.1
-            if self.dy > 0:
-                self.dy = 0
-
-        if games.keyboard.is_pressed(games.K_RIGHT):
-            self.dx += Player.VELOCITY_STEP
-        elif self.dx > 0:
-            self.dx -= 0.1
-            if self.dx < 0:
-                self.dx = 0
-        if games.keyboard.is_pressed(games.K_LEFT):
-            self.dx -= Player.VELOCITY_STEP
-        elif self.dx < 0:
-            self.dx += 0.1
-            if self.dx > 0:
-                self.dx = 0
+        if self.overlapping_sprites and (self.dx != 0 or self.dy != 0):
+            for sprite in self.overlapping_sprites:
+                if str(sprite) == 'Ball':
+                    sprite.move(self.dx, self.dy)
 
 
 class Ball(games.Sprite):
-    VELOCITY_FACTOR = 2
+    VELOCITY_FACTOR = 1.8
     image = games.load_image('ball.png')
 
     def __init__(self, game, x, y):
@@ -143,6 +87,7 @@ class Ball(games.Sprite):
                                    x=x,
                                    y=y)
         self.game = game
+
 
     def __str__(self):
         return 'Ball'
@@ -181,15 +126,14 @@ class Ball(games.Sprite):
         if self.overlapping_sprites:
             for sprite in self.overlapping_sprites:
                 if str(sprite) == 'Target':
-                    sprite.hit(self.last_hit)
+                    sprite.hit()
                 else:
                     self.dx = -self.dx
                     self.dy = -self.dy
 
-    def move(self, player_dx, player_dy, player):
+    def move(self, player_dx, player_dy):
         self.dx = player_dx * Ball.VELOCITY_FACTOR
         self.dy = player_dy * Ball.VELOCITY_FACTOR
-        self.last_hit = player
 
 
 class Target(games.Sprite):
@@ -204,13 +148,8 @@ class Target(games.Sprite):
     def __str__(self):
         return 'Target'
 
-    def hit(self, player):
-        if str(player) == 'Player1':
-            self.game.player1_score.value += 10
-            self.game.player1_score.left = 10
-        else:
-            self.game.player2_score.value += 10
-            self.game.player2_score.right = games.screen.width - 10
+    def hit(self):
+        self.game.score.value += 10
         self.game.advance()
         self.destroy()
 
@@ -219,38 +158,27 @@ class Game:
     def __init__(self):
         self.sound = games.load_sound('level.wav')
 
-        self.player1_score = games.Text(value=0,
-                                        size=40,
-                                        color=color.white,
-                                        x=10,
-                                        top=5,
-                                        is_collideable=False)
-        games.screen.add(self.player1_score)
+        self.score = games.Text(value=0,
+                                size=40,
+                                color=color.white,
+                                x=games.screen.width / 2,
+                                top=5,
+                                is_collideable=False)
+        games.screen.add(self.score)
 
-        self.player2_score = games.Text(value=0,
-                                        size=40,
-                                        color=color.red,
-                                        x=games.screen.width - 10,
-                                        top=5,
-                                        is_collideable=False)
-        games.screen.add(self.player2_score)
-
-        self.player1 = Player1(x=games.screen.width / 2 - 100,
-                               y=games.screen.height / 2)
-        games.screen.add(self.player1)
-
-        self.player2 = Player2(x=games.screen.width / 2 + 100,
-                               y=games.screen.height / 2)
-        games.screen.add(self.player2)
+        self.player = Player(game=self,
+                             x=games.screen.width / 2 - 100,
+                             y=games.screen.height / 2)
+        games.screen.add(self.player)
 
         self.ball = Ball(game=self,
-                         x=games.screen.width / 2,
-                         y=games.screen.height / 2)
+                         x=games.screen.width/2,
+                         y=games.screen.height/2)
         games.screen.add(self.ball)
 
     def play(self):
-        # games.music.load('theme.mid')
-        # games.music.play(-1)
+        #games.music.load('theme.mid')
+        #games.music.play(-1)
         pitch_image = games.load_image('pitch.png', transparent=False)
         games.screen.background = pitch_image
         self.advance()
@@ -270,11 +198,9 @@ class Game:
 
         self.sound.play()
 
-
 def main():
     football = Game()
     football.play()
-
 
 if __name__ == '__main__':
     main()
